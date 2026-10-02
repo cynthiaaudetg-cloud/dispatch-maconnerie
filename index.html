@@ -148,7 +148,7 @@ body[data-role="macon"] #espace-boss, body[data-role="macon"] #espace-chef{ disp
     </div>
     <div id="ws-boss" hidden>
       <div class="card" id="sec-envoi">
-        <h3>📣 Dispatch de demain — <span id="send-date-label"></span> <span id="boss-pub-chip"></span></h3>
+        <h3>📣 Dispatch de demain — <span id="sd-date-label"></span> <span id="sd-pub-chip"></span></h3>
         <div class="field-row">
           <div class="field"><label for="sd-site">Chantier</label><select id="sd-site"></select></div>
           <div class="field"><label for="sd-job">Job</label><select id="sd-job"><option value="brique">Brique</option><option value="pierre">Pierre</option><option value="reno">Rénovation</option><option value="autre">Autre</option><option value="conge">🎉 Congé</option></select></div>
@@ -240,6 +240,22 @@ body[data-role="macon"] #espace-boss, body[data-role="macon"] #espace-chef{ disp
         <div class="field" style="max-width:320px;"><label for="chef-who">Je suis…</label><select id="chef-who"></select></div>
         <div id="chef-result"></div>
       </div>
+      <div class="card send-card" id="sec-envoi-chef" style="margin-top:1rem;">
+        <div class="send-head"><h3>📤 Envoyer mon équipe</h3><span id="cd-pub-chip"></span></div>
+        <p class="note" style="margin:.2rem 0 .8rem;"><strong id="cd-date-label"></strong></p>
+        <div class="send-grid">
+          <div class="field"><label for="cd-site">Chantier</label><select id="cd-site"></select></div>
+          <div class="field"><label for="cd-job">Travail</label><select id="cd-job">
+            <option value="brique">Brique</option><option value="pierre">Pierre</option><option value="reno">Rénovation</option><option value="autre">Autre</option><option value="conge">🎉 Congé</option>
+          </select></div>
+          <div class="field"><label for="cd-heure">Heure</label><input id="cd-heure" type="time" value="06:30"></div>
+        </div>
+        <div class="field"><span class="field-label" style="font-size:.85rem;font-weight:600;">Qui ?</span>
+          <div id="cd-workers" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.4rem;"></div>
+        </div>
+        <div class="field"><label for="cd-note">Note (optionnel)</label><input id="cd-note" autocomplete="off" placeholder="ex. N'oubliez pas vos casques"></div>
+        <div class="send-actions"><button class="btn btn-big" id="btn-csend">📤 Envoyer à mon équipe</button> <span id="cd-msg" class="note"></span></div>
+      </div>
     </div>
   </section>
 
@@ -296,7 +312,7 @@ body[data-role="macon"] #espace-boss, body[data-role="macon"] #espace-chef{ disp
       <h3>Comment ça marche</h3>
       <ol style="margin:.4rem 0; padding-left:1.2rem; color:var(--ink-soft);">
         <li><strong>Grand boss</strong> : choisit le chantier, clique les noms, choisit le chef d'équipe, <strong>Envoyer à l'équipe</strong>.</li>
-        <li><strong>Chef d'équipe</strong> : voit son équipe de demain et les notes du boss.</li>
+        <li><strong>Chef d'équipe</strong> : envoie son équipe, voit les notes du boss.</li>
         <li><strong>Employé</strong> : voit où il va demain, avec qui, et peut demander congé ou signaler une absence (privé).</li>
       </ol>
       <p class="note">Temps réel : quand le boss envoie, l'équipe le voit aussitôt sur son téléphone. Les vraies notifications poussées viendraient au niveau 2.</p>
@@ -452,40 +468,52 @@ document.querySelectorAll('form[data-login-role]').forEach(function(f){
 });
 
 /* ---------- BOSS : envoi du dispatch ---------- */
-var sendSel = {};
-function renderSend(){
+var sendSel = { sd: {}, cd: {} };
+function renderSendCard(p, withChef){
   var tm = tomorrowStr();
-  $('send-date-label').textContent = fmtLong(tm);
+  $(p + '-date-label').textContent = fmtLong(tm);
   var pub = !!DB.published[tm];
-  $('boss-pub-chip').innerHTML = pub ? '<span class="chip chip-pub">Publié</span>' : '<span class="chip chip-soon">Pas encore publié</span>';
-  var siteSel = $('sd-site'), curS = siteSel.value;
+  var chipEl = $(p + '-pub-chip');
+  if(chipEl) chipEl.innerHTML = pub ? '<span class="chip chip-pub">Publié</span>' : '<span class="chip chip-soon">Pas encore publié</span>';
+  var siteSel = $(p + '-site'), curS = siteSel.value;
   siteSel.innerHTML = '<option value="">— (congé)</option>' + DB.sites.map(function(s){
     return '<option value="' + s.id + '">' + esc(s.nom) + (s.ville ? ' — ' + esc(s.ville) : '') + '</option>';
   }).join('');
   if(curS && siteById(curS)) siteSel.value = curS;
-  var chefSel = $('sd-chef'), curC = chefSel.value;
-  chefSel.innerHTML = '<option value="">—</option>' + responsibles().map(function(m){
-    return '<option value="' + m.id + '">' + esc(m.nom) + ' (' + esc(ROLE_LABEL[m.role]) + ')</option>';
-  }).join('');
-  if(curC && teamById(curC)) chefSel.value = curC;
-  $('sd-workers').innerHTML = workers().map(function(m){
-    return '<button type="button" class="wchip' + (sendSel[m.id] ? ' sel' : '') + '" data-send-w="' + m.id + '">' + esc(m.nom) + '</button>';
+  if(withChef){
+    var chefSel = $(p + '-chef'), curC = chefSel.value;
+    chefSel.innerHTML = '<option value="">—</option>' + responsibles().map(function(m){
+      return '<option value="' + m.id + '">' + esc(m.nom) + ' (' + esc(ROLE_LABEL[m.role]) + ')</option>';
+    }).join('');
+    if(curC && teamById(curC)) chefSel.value = curC;
+  }
+  $(p + '-workers').innerHTML = workers().map(function(m){
+    return '<button type="button" class="wchip' + (sendSel[p][m.id] ? ' sel' : '') + '" data-send-p="' + p + '" data-send-w="' + m.id + '">' + esc(m.nom) + '</button>';
   }).join('') || '<p class="note">Aucun employé.</p>';
 }
+function renderSend(){ renderSendCard('sd', true); }
+function renderSendChef(){ renderSendCard('cd', false); }
 document.addEventListener('click', function(e){
   var chip = e.target.closest('[data-send-w]');
-  if(chip){ var id = chip.getAttribute('data-send-w'); sendSel[id] = !sendSel[id]; chip.classList.toggle('sel'); }
+  if(chip){
+    var p = chip.getAttribute('data-send-p'), id = chip.getAttribute('data-send-w');
+    sendSel[p][id] = !sendSel[p][id]; chip.classList.toggle('sel');
+  }
 });
-$('btn-send').addEventListener('click', function(){
-  var tm = tomorrowStr(), msg = $('send-msg');
-  var sel = Object.keys(sendSel).filter(function(id){ return sendSel[id]; });
-  var job = $('sd-job').value, sid = $('sd-site').value, bid = $('sd-chef').value, heure = $('sd-heure').value || '06:30';
-  var note = $('sd-note').value.trim();
+function doSend(p, chefId){
+  var tm = tomorrowStr(), msg = $(p === 'sd' ? 'send-msg' : 'cd-msg');
+  var sel = Object.keys(sendSel[p]).filter(function(id){ return sendSel[p][id]; });
+  var job = $(p + '-job').value, sid = $(p + '-site').value, heure = $(p + '-heure').value || '06:30';
+  var note = $(p + '-note').value.trim();
+  var bid = chefId;
   if(!sel.length){ msg.textContent = 'Cliquez sur au moins un nom.'; return; }
   if(job !== 'conge' && !sid){ msg.textContent = 'Choisissez un chantier (ou Congé).'; return; }
-  DB.assigns[tm] = sel.map(function(wid){
-    return { id: uid('a'), workerId: wid, siteId: sid || null, bossId: bid || null, job: job, heure: heure };
+  var list = DB.assigns[tm] = DB.assigns[tm] || [];
+  list = list.filter(function(a){ return sel.indexOf(a.workerId) < 0; });
+  sel.forEach(function(wid){
+    list.push({ id: uid('a'), workerId: wid, siteId: sid || null, bossId: bid || null, job: job, heure: heure });
   });
+  DB.assigns[tm] = list;
   DB.published[tm] = true;
   var s = siteById(sid), b = teamById(bid);
   pushNotif('📣 Le dispatch de demain (' + fmtLong(tm) + ') est publié.', null);
@@ -493,16 +521,23 @@ $('btn-send').addEventListener('click', function(){
     if(job === 'conge') pushNotif('🎉 Vous êtes en congé demain.', wid);
     else pushNotif('📣 Demain : ' + (s ? s.nom : '?') + ' (' + JOB_LABEL[job] + ')' + (b ? ', avec ' + b.nom : '') + ', départ ' + heure + '.', wid);
   });
-  if(note && bid){
-    DB.notes.unshift({ id: uid('nt'), ts: Date.now(), toWorkerId: bid, text: note });
-    DB.notes = DB.notes.slice(0, 40);
-    pushNotif('📝 Note du boss : ' + note, bid);
+  if(note){
+    if(p === 'sd' && bid){
+      DB.notes.unshift({ id: uid('nt'), ts: Date.now(), toWorkerId: bid, text: note });
+      DB.notes = DB.notes.slice(0, 40);
+      pushNotif('📝 Note du boss : ' + note, bid);
+    } else {
+      var from = b ? b.nom : 'votre chef';
+      sel.forEach(function(wid){ pushNotif('📝 Note de ' + from + ' : ' + note, wid); });
+    }
   }
-  $('sd-note').value = '';
-  sendSel = {};
+  $(p + '-note').value = '';
+  sendSel[p] = {};
   save(); renderAll();
-  msg.textContent = 'Envoyé ! ' + sel.length + ' personne' + (sel.length > 1 ? 's' : '') + ' notifiée' + (sel.length > 1 ? 's' : '') + '.';
-});
+  msg.textContent = 'Envoyé ! ' + sel.length + ' personne' + (sel.length > 1 ? 's' : '') + '.';
+}
+$('btn-send').addEventListener('click', function(){ doSend('sd', $('sd-chef').value || null); });
+$('btn-csend').addEventListener('click', function(){ doSend('cd', $('chef-who').value || null); });
 $('btn-unpublish').addEventListener('click', function(){
   delete DB.published[tomorrowStr()];
   save(); renderAll();
@@ -720,7 +755,7 @@ $('abs-form').addEventListener('submit', function(e){
 function renderAll(){
   var r = session ? session.role : null;
   if(r === 'boss' || !r){ renderSend(); renderDash(); renderDemList(); renderTeam(); renderSites(); }
-  if(r === 'chef' || !r){ renderChef(); }
+  if(r === 'chef' || !r){ renderSendChef(); renderChef(); }
   if(r === 'macon' || !r){ renderMacon(); }
   renderNotifs();
 }
