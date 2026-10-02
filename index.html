@@ -82,6 +82,14 @@ table.grid th{ color:var(--muted); font-size:.8rem; text-transform:uppercase; le
 .note{ font-size:.82rem; color:var(--muted); }
 footer{ border-top:1px solid var(--line); padding:1.4rem 0 2rem; color:var(--muted); font-size:.85rem; }
 .login-form{ max-width:420px; }
+.wchip{ border:1.5px solid var(--line); background:var(--bg); color:var(--ink); border-radius:999px; padding:.4rem .9rem; font:inherit; font-size:.9rem; cursor:pointer; }
+.wchip:hover{ border-color:var(--brand); }
+.wchip.sel{ background:var(--brand); border-color:var(--brand-deep); color:#fff; font-weight:700; }
+.wchip.placed{ opacity:.55; cursor:default; }
+.st-chip{ font-size:.75rem; font-weight:700; border-radius:999px; padding:.12rem .6rem; border:1px solid var(--line); }
+.st-attente{ background:#fff7e6; color:var(--warn); border-color:var(--warn); }
+.st-accepte{ background:#e7f6ee; color:var(--ok); border-color:var(--ok); }
+.st-refuse{ background:#fdecea; color:var(--danger); border-color:var(--danger); }
 [hidden]{ display:none !important; }
 </style>
 </head>
@@ -176,12 +184,31 @@ footer{ border-top:1px solid var(--line); padding:1.4rem 0 2rem; color:var(--mut
           </div>
         </div>
       </div>
+      <div class="card" id="sec-rapide">
+        <h3>⚡ Affectation rapide : même chantier pour plusieurs gars</h3>
+        <p class="note">Choisissez le chantier une seule fois, cliquez sur les gars, puis affectez tout le monde d'un coup.</p>
+        <div class="field-row">
+          <div class="field"><label for="qa-site">Chantier</label><select id="qa-site"></select></div>
+          <div class="field"><label for="qa-job">Type de job</label><select id="qa-job"><option value="brique">Brique</option><option value="pierre">Pierre</option><option value="reno">Rénovation</option><option value="autre">Autre</option><option value="conge">🎉 Congé</option></select></div>
+          <div class="field"><label for="qa-boss">Boss / chef responsable</label><select id="qa-boss"></select></div>
+          <div class="field"><label for="qa-heure">Heure de départ</label><input type="time" id="qa-heure" value="06:30"></div>
+        </div>
+        <div class="field"><span class="field-label" style="font-size:.85rem;font-weight:600;">Cliquez sur les gars à affecter :</span>
+          <div id="qa-workers" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.4rem;"></div>
+        </div>
+        <p><button type="button" class="btn" id="qa-assign">Affecter la sélection</button></p>
+        <p class="note" id="qa-msg" aria-live="polite"></p>
+      </div>
       <div class="card" id="sec-publier">
         <h3>📣 Publier le dispatch de demain</h3>
         <p class="note">Tant que ce n'est pas publié, l'équipe voit « pas encore publié ». Une fois publié, chaque maçon voit où il va et avec qui.</p>
         <p><button type="button" class="btn" id="btn-publish">Publier le dispatch de demain</button>
         <button type="button" class="btn btn-secondary" id="btn-unpublish">Retirer la publication</button></p>
         <p class="note" id="pub-msg" aria-live="polite"></p>
+      </div>
+      <div class="card" id="sec-demandes">
+        <h3>📝 Demandes des employés <span class="note">(privé : entre l'employé et vous)</span></h3>
+        <div id="dem-list"></div>
       </div>
       <div class="card" id="sec-equipe">
         <h3>👷 Équipe</h3>
@@ -250,6 +277,19 @@ footer{ border-top:1px solid var(--line); padding:1.4rem 0 2rem; color:var(--mut
         <h3>🔔 Notifications <span class="note">(simulation — les vraies notifications sur téléphone viendraient au niveau 2)</span></h3>
         <div id="macon-notifs"></div>
       </div>
+      <div class="card">
+        <h3>📝 Absences et congés <span class="note">(privé : seulement vous et le boss)</span></h3>
+        <form id="abs-form" novalidate>
+          <div class="field-row">
+            <div class="field"><label for="abs-type">Type</label><select id="abs-type"><option value="absence">Absence — je serai absent</option><option value="conge">Demande de congé</option></select></div>
+            <div class="field"><label for="abs-date">Date</label><input type="date" id="abs-date"></div>
+          </div>
+          <div class="field"><label for="abs-raison">Raison</label><input id="abs-raison" autocomplete="off" placeholder="ex. rendez-vous médical"></div>
+          <button class="btn btn-sm" type="submit">Envoyer au boss</button>
+          <p class="note" id="abs-msg" aria-live="polite"></p>
+        </form>
+        <div id="abs-list" style="margin-top:.8rem;"></div>
+      </div>
     </div>
   </section>
 
@@ -308,13 +348,16 @@ function defaultData(){
     ],
     assigns: {},
     published: {},
-    notifs: []
+    notifs: [],
+    absences: []
   };
 }
 var DB;
 try { DB = JSON.parse(localStorage.getItem(LS_KEY)) || defaultData(); }
 catch(e){ DB = defaultData(); }
 if(!DB.team || !DB.sites) DB = defaultData();
+if(!DB.absences) DB.absences = [];
+if(!DB.notifs) DB.notifs = [];
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }catch(e){} }
 function teamById(id){ for(var i = 0; i < DB.team.length; i++) if(DB.team[i].id === id) return DB.team[i]; return null; }
 function siteById(id){ for(var i = 0; i < DB.sites.length; i++) if(DB.sites[i].id === id) return DB.sites[i]; return null; }
@@ -451,6 +494,7 @@ function renderAssignOptions(){
   $('as-worker').innerHTML = ws.map(function(m){ return '<option value="' + m.id + '">' + esc(m.nom) + '</option>'; }).join('');
   $('as-boss').innerHTML = '<option value="">—</option>' + rs.map(function(m){ return '<option value="' + m.id + '">' + esc(m.nom) + ' (' + esc(ROLE_LABEL[m.role]) + ')</option>'; }).join('');
   $('as-site').innerHTML = '<option value="">— (congé)</option>' + DB.sites.map(function(s){ return '<option value="' + s.id + '">' + esc(s.nom) + (s.ville ? ' — ' + esc(s.ville) : '') + '</option>'; }).join('');
+  if(typeof renderQaOptions === 'function') renderQaOptions();
 }
 function dispDate(){ return $('disp-date').value || todayStr(); }
 function villeFilt(){ return $('disp-ville').value || ''; }
@@ -525,7 +569,7 @@ document.addEventListener('click', function(e){
     }
   }
 });
-$('disp-date').addEventListener('change', renderAssigns);
+$('disp-date').addEventListener('change', function(){ renderAssigns(); renderQaOptions(); });
 $('disp-ville').addEventListener('change', renderAssigns);
 $('qa-tomorrow').addEventListener('click', function(){ $('disp-date').value = tomorrowStr(); renderAssigns(); renderDash(); });
 $('qa-today').addEventListener('click', function(){ $('disp-date').value = todayStr(); renderAssigns(); renderDash(); });
@@ -553,7 +597,8 @@ function renderDash(){
     tile(list.length - enConge, 'affectés demain', '#sec-dispatch', false) +
     tile(enConge, 'en congé demain', '#sec-dispatch', false) +
     tile(sansAffect, 'sans affectation', '#sec-dispatch', true) +
-    tile(chantiersSansBoss, 'chantiers sans équipe', '#sec-chantiers', true);
+    tile(chantiersSansBoss, 'chantiers sans équipe', '#sec-chantiers', true) +
+    tile(DB.absences.filter(function(r){ return r.statut === 'attente'; }).length, 'demandes en attente', '#sec-demandes', true);
   var pm = $('pub-msg');
   if(pm) pm.textContent = pub ? 'Dispatch de demain publié. L\u2019équipe peut le consulter.' : '';
 }
@@ -578,6 +623,7 @@ function renderMacon(){
   var ws = workers();
   $('macon-who').innerHTML = ws.map(function(m){ return '<option value="' + m.id + '">' + esc(m.nom) + '</option>'; }).join('');
   showMaconAssign();
+  renderAbsList();
   renderNotifs();
 }
 function showMaconAssign(){
@@ -609,9 +655,111 @@ function showMaconAssign(){
     '<div class="avec">👷 Avec : <strong>' + esc(b ? b.nom : '—') + '</strong>' + (b ? ' (' + esc(ROLE_LABEL[b.role]) + ')' : '') + '</div>' +
     '<div class="heure">🕡 Départ : ' + esc(a.heure) + '</div>';
 }
-$('macon-who').addEventListener('change', function(){ showMaconAssign(); renderNotifs(); });
+$('macon-who').addEventListener('change', function(){ showMaconAssign(); renderAbsList(); renderNotifs(); });
 
-function renderBossAll(){ renderTeam(); renderSites(); renderAssignOptions(); $('disp-date').value = tomorrowStr(); renderAssigns(); renderDash(); }
+/* ---------- Affectation rapide ---------- */
+function renderQaOptions(){
+  $('qa-site').innerHTML = '<option value="">— (congé)</option>' + DB.sites.map(function(s){ return '<option value="' + s.id + '">' + esc(s.nom) + (s.ville ? ' — ' + esc(s.ville) : '') + '</option>'; }).join('');
+  $('qa-boss').innerHTML = '<option value="">—</option>' + responsibles().map(function(m){ return '<option value="' + m.id + '">' + esc(m.nom) + ' (' + esc(ROLE_LABEL[m.role]) + ')</option>'; }).join('');
+  var ds = dispDate(), seen = {};
+  assignsOf(ds).forEach(function(a){ seen[a.workerId] = true; });
+  $('qa-workers').innerHTML = workers().map(function(m){
+    var placed = !!seen[m.id];
+    return '<button type="button" class="wchip' + (placed ? ' placed' : '') + '" data-qa-w="' + m.id + '"' + (placed ? ' disabled title="Déjà placé"' : '') + '>' + esc(m.nom) + (placed ? ' ✓' : '') + '</button>';
+  }).join('') || '<p class="note">Aucun employé. Ajoutez votre équipe d\u2019abord.</p>';
+}
+document.addEventListener('click', function(e){
+  var chip = e.target.closest('[data-qa-w]');
+  if(chip && !chip.disabled) chip.classList.toggle('sel');
+});
+$('qa-assign').addEventListener('click', function(){
+  var sel = Array.prototype.map.call(document.querySelectorAll('#qa-workers .wchip.sel'), function(b){ return b.getAttribute('data-qa-w'); });
+  var ds = dispDate(), job = $('qa-job').value, sid = $('qa-site').value, bid = $('qa-boss').value, heure = $('qa-heure').value || '06:30';
+  var msg = $('qa-msg');
+  if(!sel.length){ msg.textContent = 'Cliquez sur au moins un gars.'; return; }
+  if(job !== 'conge' && !sid){ msg.textContent = 'Choisissez un chantier (ou Congé).'; return; }
+  var seen = {};
+  assignsOf(ds).forEach(function(a){ seen[a.workerId] = true; });
+  var n = 0;
+  sel.forEach(function(wid){
+    if(seen[wid]) return;
+    (DB.assigns[ds] = DB.assigns[ds] || []).push({ id: uid('a'), workerId: wid, siteId: sid || null, bossId: bid || null, job: job, heure: heure });
+    n++;
+    if(DB.published[ds]){
+      if(job === 'conge') pushNotif('🎉 Vous êtes en congé le ' + fmtLong(ds) + '.', wid);
+      else { var s = siteById(sid); pushNotif('🔄 Votre affectation pour le ' + fmtLong(ds) + ' : ' + (s ? s.nom : '?') + ' (' + JOB_LABEL[job] + ').', wid); }
+    }
+  });
+  save(); renderAssigns(); renderDash(); renderQaOptions();
+  msg.textContent = n ? n + ' gars affecté' + (n > 1 ? 's' : '') + ' !' : 'Ces gars sont déjà placés.';
+});
+
+/* ---------- Absences et congés (privé employé ↔ boss) ---------- */
+function renderAbsList(){
+  var box = $('abs-list'); if(!box) return;
+  var wid = $('macon-who') ? $('macon-who').value : null;
+  var mine = DB.absences.filter(function(r){ return r.workerId === wid; }).sort(function(a, b){ return b.ts - a.ts; });
+  if(!mine.length){ box.innerHTML = '<p class="note">Aucune demande envoyée.</p>'; return; }
+  var stL = { attente:'En attente', accepte:'Acceptée', refuse:'Refusée' };
+  box.innerHTML = mine.map(function(r){
+    return '<p style="margin:.35rem 0; font-size:.92rem;">' +
+      (r.type === 'conge' ? '🎉 Congé' : '🏥 Absence') + ' — ' + fmtLong(r.date) +
+      (r.raison ? ' : ' + esc(r.raison) : '') +
+      ' <span class="st-chip st-' + r.statut + '">' + stL[r.statut] + '</span></p>';
+  }).join('');
+}
+$('abs-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  var wid = $('macon-who').value, date = $('abs-date').value, raison = $('abs-raison').value.trim();
+  if(!wid || !date){ $('abs-msg').textContent = 'Choisissez une date.'; return; }
+  DB.absences.push({ id: uid('ab'), workerId: wid, date: date, raison: raison, type: $('abs-type').value, statut: 'attente', ts: Date.now() });
+  $('abs-raison').value = '';
+  save(); renderAbsList(); renderDash(); renderDemList();
+  $('abs-msg').textContent = 'Envoyé au boss (privé).';
+});
+function renderDemList(){
+  var box = $('dem-list'); if(!box) return;
+  var list = DB.absences.slice().sort(function(a, b){ return b.ts - a.ts; });
+  if(!list.length){ box.innerHTML = '<p class="note">Aucune demande pour le moment.</p>'; return; }
+  var stL = { attente:'En attente', accepte:'Acceptée', refuse:'Refusée' };
+  box.innerHTML = list.map(function(r){
+    var w = teamById(r.workerId);
+    var h = '<p style="margin:.5rem 0; font-size:.92rem;"><strong>' + esc(w ? w.nom : '?') + '</strong> — ' +
+      (r.type === 'conge' ? '🎉 demande de congé' : '🏥 sera absent') + ' le <strong>' + fmtLong(r.date) + '</strong>' +
+      (r.raison ? ' : ' + esc(r.raison) : '') +
+      ' <span class="st-chip st-' + r.statut + '">' + stL[r.statut] + '</span>';
+    if(r.statut === 'attente'){
+      h += '<br><button type="button" class="btn btn-sm" data-dem-ok="' + r.id + '">Accepter</button> ' +
+        '<button type="button" class="btn btn-danger btn-sm" data-dem-no="' + r.id + '">Refuser</button>';
+    }
+    return h + '</p>';
+  }).join('');
+}
+document.addEventListener('click', function(e){
+  var okB = e.target.closest('[data-dem-ok]'), noB = e.target.closest('[data-dem-no]');
+  if(!okB && !noB) return;
+  var id = (okB || noB).getAttribute(okB ? 'data-dem-ok' : 'data-dem-no');
+  var r = null;
+  DB.absences.forEach(function(x){ if(x.id === id) r = x; });
+  if(!r) return;
+  if(okB){
+    r.statut = 'accepte';
+    if(r.type === 'conge'){
+      var list = DB.assigns[r.date] = DB.assigns[r.date] || [];
+      var exists = list.some(function(a){ return a.workerId === r.workerId; });
+      if(!exists) list.push({ id: uid('a'), workerId: r.workerId, siteId: null, bossId: null, job: 'conge', heure: '' });
+      pushNotif('🎉 Votre demande de congé pour le ' + fmtLong(r.date) + ' est acceptée.', r.workerId);
+    } else {
+      pushNotif('✅ Votre absence du ' + fmtLong(r.date) + ' est notée.', r.workerId);
+    }
+  } else {
+    r.statut = 'refuse';
+    pushNotif('❌ Votre demande du ' + fmtLong(r.date) + ' a été refusée. Parlez-en avec votre boss.', r.workerId);
+  }
+  save(); renderDemList(); renderDash(); renderAssigns(); renderQaOptions(); renderAbsList();
+});
+
+function renderBossAll(){ renderTeam(); renderSites(); renderAssignOptions(); renderQaOptions(); renderDemList(); $('disp-date').value = tomorrowStr(); renderAssigns(); renderDash(); }
 renderNotifs();
 })();
 </script>
