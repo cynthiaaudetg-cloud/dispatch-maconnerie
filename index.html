@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch Maçonnerie — où va l'équipe demain</title>
+<meta name="description" content="Démo niveau 1 : chaque soir, l'équipe de maçonnerie sait où elle va et avec quel boss. Données fictives, tout fonctionne dans le navigateur.">
+<style>
+:root{
+  --brand:#1a56db; --brand-deep:#123a9e; --brand-soft:#e8effe;
+  --ink:#111318; --ink-soft:#3c414b; --muted:#6b7280;
+  --bg:#ffffff; --surface:#f7f9fd; --line:#dbe3f0;
+  --ok:#067a46; --warn:#a05d00; --danger:#b42318;
+  --radius:12px; --shadow:0 1px 3px rgba(17,24,39,.08);
+  --font:"Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --ink:#eef1f6; --ink-soft:#c6cdd9; --muted:#9aa3b2; --bg:#0e1116; --surface:#161b24; --line:#2a3342; --brand-soft:#16233f; --ok:#4cc37e; --warn:#f2b93c; --danger:#f27d72; }
+}
+*{ box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
+body{ margin:0; font-family:var(--font); background:var(--bg); color:var(--ink); line-height:1.55; }
+.wrap{ max-width:1060px; margin:0 auto; padding:0 1rem; }
+header.topbar{ position:sticky; top:0; z-index:50; background:var(--bg); border-bottom:1px solid var(--line); }
+.topbar-in{ display:flex; align-items:center; gap:.8rem; padding:.6rem 1rem; max-width:1060px; margin:0 auto; flex-wrap:wrap; }
+.logo{ display:flex; align-items:center; gap:.5rem; font-weight:800; font-size:1.05rem; color:var(--brand-deep); text-decoration:none; }
+.logo .brick{ width:26px; height:26px; border-radius:6px; background:var(--brand); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:1rem; }
+nav.sections{ display:flex; gap:.4rem; flex-wrap:wrap; margin-left:auto; }
+nav.sections button{ background:none; border:1px solid transparent; border-radius:8px; padding:.4rem .7rem; font:inherit; font-size:.88rem; color:var(--ink-soft); cursor:pointer; }
+nav.sections button:hover{ border-color:var(--line); background:var(--surface); }
+.sessionbar{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; padding:.45rem 1rem; background:var(--surface); border-bottom:1px solid var(--line); font-size:.85rem; color:var(--ink-soft); max-width:1060px; margin:0 auto; }
+.sessionbar .who{ font-weight:700; color:var(--ink); }
+.role-switch{ display:flex; gap:.35rem; align-items:center; flex-wrap:wrap; }
+.role-switch .lbl{ font-size:.8rem; color:var(--muted); }
+.hero{ padding:2.2rem 0 1.4rem; }
+.hero h1{ font-size:1.9rem; margin:.2rem 0 .5rem; color:var(--brand-deep); }
+.hero p{ color:var(--ink-soft); max-width:62ch; margin:.4rem 0; }
+.badge{ display:inline-block; font-size:.75rem; font-weight:700; background:var(--brand-soft); color:var(--brand-deep); border:1px solid var(--line); border-radius:999px; padding:.15rem .7rem; }
+.section{ padding:1.6rem 0; border-top:1px solid var(--line); }
+.sec-head h2{ margin:.1rem 0 .3rem; font-size:1.35rem; color:var(--brand-deep); display:flex; align-items:center; gap:.5rem; }
+.sec-head p{ color:var(--ink-soft); margin:.2rem 0 .8rem; max-width:70ch; }
+.card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:1rem 1.1rem; margin-bottom:1rem; box-shadow:var(--shadow); }
+.card h3{ margin:.1rem 0 .6rem; font-size:1.05rem; display:flex; align-items:center; gap:.5rem; }
+.btn{ font:inherit; border-radius:9px; padding:.55rem 1rem; cursor:pointer; border:1.5px solid var(--brand); background:var(--brand); color:#fff; font-weight:700; }
+.btn:hover{ background:var(--brand-deep); border-color:var(--brand-deep); }
+.btn-secondary{ background:var(--bg); color:var(--brand-deep); border-color:var(--line); }
+.btn-secondary:hover{ border-color:var(--brand); background:var(--brand-soft); }
+.btn-danger{ background:var(--bg); color:var(--danger); border-color:var(--line); }
+.btn-danger:hover{ border-color:var(--danger); }
+.btn-sm{ padding:.35rem .7rem; font-size:.85rem; }
+.btn-test{ background:#fff; color:var(--brand-deep); border:1.5px dashed var(--brand); }
+.field{ margin-bottom:.7rem; }
+.field label{ display:block; font-size:.85rem; font-weight:600; margin-bottom:.25rem; }
+.field input, .field select{ font:inherit; width:100%; max-width:420px; padding:.5rem .6rem; border:1.5px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); }
+.field-row{ display:flex; gap:.7rem; flex-wrap:wrap; }
+.field-row .field{ flex:1 1 180px; }
+table.grid{ width:100%; border-collapse:collapse; font-size:.9rem; }
+table.grid th, table.grid td{ text-align:left; padding:.5rem .6rem; border-bottom:1px solid var(--line); }
+table.grid th{ color:var(--muted); font-size:.8rem; text-transform:uppercase; letter-spacing:.03em; }
+.chip{ display:inline-block; font-size:.75rem; font-weight:700; border-radius:999px; padding:.12rem .6rem; border:1px solid var(--line); background:var(--bg); }
+.chip-boss{ background:var(--brand-soft); color:var(--brand-deep); border-color:var(--brand); }
+.chip-pub{ background:#e7f6ee; color:var(--ok); border-color:var(--ok); }
+.chip-soon{ background:#fff7e6; color:var(--warn); border-color:var(--warn); }
+.tile-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:.9rem; margin:.6rem 0 1rem; }
+@media (max-width:900px){ .tile-grid{ grid-template-columns:1fr 1fr; } }
+@media (max-width:560px){ .tile-grid{ grid-template-columns:1fr; } }
+.tile{ background:var(--surface); border:1.5px solid var(--line); border-radius:var(--radius); padding:.9rem 1rem; box-shadow:var(--shadow); cursor:pointer; }
+.tile:hover{ border-color:var(--brand); }
+.tile-n{ font-weight:800; font-size:1.7rem; color:var(--brand-deep); line-height:1; }
+.tile-l{ font-size:.85rem; color:var(--muted); }
+.tile-go{ font-size:.8rem; font-weight:700; color:var(--brand); margin-top:.25rem; }
+.tile-warn{ border-color:var(--warn); } .tile-warn .tile-n{ color:var(--warn); }
+.tile-ok{ opacity:.8; } .tile-ok .tile-n{ color:var(--ok); }
+.dash-quick{ display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin:.6rem 0 1rem; padding:.8rem; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+.dash-quick-label{ font-size:.85rem; font-weight:700; color:var(--muted); margin-right:.2rem; }
+.assign-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+@media (max-width:800px){ .assign-grid{ grid-template-columns:1fr; } }
+.big-day{ text-align:center; padding:1.6rem 1rem; }
+.big-day .ou{ font-size:1.5rem; font-weight:800; color:var(--brand-deep); margin:.4rem 0; }
+.big-day .avec{ font-size:1.05rem; margin:.3rem 0; }
+.big-day .heure{ font-size:.95rem; color:var(--muted); }
+.note{ font-size:.82rem; color:var(--muted); }
+footer{ border-top:1px solid var(--line); padding:1.4rem 0 2rem; color:var(--muted); font-size:.85rem; }
+.login-form{ max-width:420px; }
+[hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="logo" href="#top"><span class="brick">🧱</span><span id="brand-name">MGA Maçonnerie Gervais &amp; Associés inc.</span></a>
+    <nav class="sections" aria-label="Sections">
+      <button type="button" data-goto="#espace-boss">Espace Boss</button>
+      <button type="button" data-goto="#espace-macon">Espace Maçon</button>
+      <button type="button" data-goto="#aide">Aide</button>
+    </nav>
+  </div>
+  <div class="sessionbar" id="sessionbar">
+    <span id="session-label">Non connecté — <span class="badge">simulation niveau 1</span></span>
+    <span class="role-switch" id="role-switch" hidden>
+      <span class="lbl">Essayer comme :</span>
+      <button type="button" class="btn btn-secondary btn-sm" data-test-login="boss">Boss</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-test-login="macon">Maçon</button>
+      <button type="button" class="btn btn-secondary btn-sm" data-login-act="logout">Se déconnecter</button>
+    </span>
+  </div>
+</header>
+<main class="wrap" id="top">
+  <div class="hero">
+    <span class="badge">Démo niveau 1 — données fictives dans votre navigateur</span>
+    <h1>Où va l'équipe demain ?</h1>
+    <p>Chaque soir, le boss prépare le dispatch du lendemain : qui va sur quel chantier, avec quel boss, à quelle heure. L'équipe le consulte le soir même, fini les textos de dernière minute.</p>
+  </div>
+
+  <section class="section" id="espace-boss">
+    <div class="sec-head">
+      <h2>🧱 Espace Boss</h2>
+      <p>Le boss gère l'équipe, les chantiers et prépare le dispatch du lendemain. <strong>Accès test</strong> pour essayer sans compte.</p>
+    </div>
+    <div id="auth-boss">
+      <div class="card">
+        <h3>Connexion Boss</h3>
+        <form class="login-form" data-login-role="boss" novalidate>
+          <div class="field"><label for="lg-boss-user">Identifiant</label><input id="lg-boss-user" autocomplete="off" placeholder="ex. boss"></div>
+          <div class="field"><label for="lg-boss-pass">Mot de passe</label><input id="lg-boss-pass" type="password" autocomplete="off" placeholder="••••"></div>
+          <button class="btn" type="submit">Se connecter</button>
+          <p class="note" id="lg-boss-msg" aria-live="polite"></p>
+        </form>
+        <div style="margin-top:.8rem;">
+          <span class="badge">Test seulement</span>
+          <button type="button" class="btn btn-test btn-sm" data-test-login="boss">Accès test</button>
+          <p class="note">Compte fictif « test-boss » — pour essayer la démo.</p>
+        </div>
+      </div>
+    </div>
+    <div id="ws-boss" hidden>
+      <div class="card">
+        <h3>📋 Demain : <span id="boss-tomorrow"></span> <span id="boss-pub-chip"></span></h3>
+        <div class="tile-grid" id="boss-dash"></div>
+        <div class="dash-quick" aria-label="Accès rapide">
+          <span class="dash-quick-label">Accès rapide :</span>
+          <button type="button" class="btn btn-secondary btn-sm" data-goto="#sec-dispatch">Dispatch</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-goto="#sec-equipe">Équipe</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-goto="#sec-chantiers">Chantiers</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-goto="#sec-publier">Publier</button>
+        </div>
+      </div>
+      <div class="card" id="sec-dispatch">
+        <h3>🗓️ Dispatch du jour</h3>
+        <div class="dash-quick" aria-label="Accès rapide">
+          <span class="dash-quick-label">Accès rapide :</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="qa-tomorrow">Voir demain</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="qa-today">Voir aujourd'hui</button>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="disp-date">Journée</label><input type="date" id="disp-date"></div>
+          <div class="field"><label for="disp-ville">Filtrer par ville</label><select id="disp-ville"><option value="">Toutes les villes</option></select></div>
+        </div>
+        <div class="assign-grid">
+          <div>
+            <h4 style="margin:.4rem 0;">Affectations</h4>
+            <table class="grid"><thead><tr><th>Maçon</th><th>Chantier</th><th>Ville</th><th>Job</th><th>Boss / chef</th><th>Heure</th><th></th></tr></thead>
+            <tbody id="assign-body"></tbody></table>
+          </div>
+          <div>
+            <h4 style="margin:.4rem 0;">Ajouter une affectation</h4>
+            <form id="assign-form" novalidate>
+              <div class="field"><label for="as-worker">Maçon</label><select id="as-worker"></select></div>
+              <div class="field"><label for="as-site">Chantier</label><select id="as-site"></select></div>
+              <div class="field"><label for="as-job">Type de job</label><select id="as-job"><option value="brique">Brique</option><option value="pierre">Pierre</option><option value="reno">Rénovation</option><option value="autre">Autre</option><option value="conge">🎉 Congé</option></select></div>
+              <div class="field"><label for="as-boss">Boss / chef responsable</label><select id="as-boss"></select></div>
+              <div class="field"><label for="as-heure">Heure de départ</label><input type="time" id="as-heure" value="06:30"></div>
+              <button class="btn btn-sm" type="submit">Ajouter</button>
+              <p class="note" id="assign-msg" aria-live="polite"></p>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="sec-publier">
+        <h3>📣 Publier le dispatch de demain</h3>
+        <p class="note">Tant que ce n'est pas publié, l'équipe voit « pas encore publié ». Une fois publié, chaque maçon voit où il va et avec qui.</p>
+        <p><button type="button" class="btn" id="btn-publish">Publier le dispatch de demain</button>
+        <button type="button" class="btn btn-secondary" id="btn-unpublish">Retirer la publication</button></p>
+        <p class="note" id="pub-msg" aria-live="polite"></p>
+      </div>
+      <div class="card" id="sec-equipe">
+        <h3>👷 Équipe</h3>
+        <div class="dash-quick" aria-label="Accès rapide">
+          <span class="dash-quick-label">Accès rapide :</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="qa-add-member">Ajouter un membre</button>
+        </div>
+        <table class="grid"><thead><tr><th>Nom</th><th>Rôle</th><th></th></tr></thead>
+        <tbody id="team-body"></tbody></table>
+        <form id="team-form" novalidate style="margin-top:.8rem;">
+          <div class="field-row">
+            <div class="field"><label for="tm-nom">Nom</label><input id="tm-nom" autocomplete="off" placeholder="ex. Karim"></div>
+            <div class="field"><label for="tm-role">Rôle</label><select id="tm-role"><option value="macon">Employé (maçon)</option><option value="chef">Chef d'équipe</option><option value="boss">Boss</option><option value="bureau">Bureau</option></select></div>
+          </div>
+          <button class="btn btn-sm" type="submit">Ajouter</button>
+        </form>
+      </div>
+      <div class="card" id="sec-chantiers">
+        <h3>🏗️ Chantiers</h3>
+        <div class="dash-quick" aria-label="Accès rapide">
+          <span class="dash-quick-label">Accès rapide :</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="qa-add-site">Ajouter un chantier</button>
+        </div>
+        <table class="grid"><thead><tr><th>Chantier</th><th>Adresse</th><th>Ville / région</th><th></th></tr></thead>
+        <tbody id="sites-body"></tbody></table>
+        <form id="site-form" novalidate style="margin-top:.8rem;">
+          <div class="field-row">
+            <div class="field"><label for="st-nom">Nom du chantier</label><input id="st-nom" autocomplete="off" placeholder="ex. Maison Rue Principale"></div>
+            <div class="field"><label for="st-adr">Adresse</label><input id="st-adr" autocomplete="off" placeholder="ex. 123 rue Principale"></div>
+            <div class="field"><label for="st-ville">Ville / région</label><input id="st-ville" autocomplete="off" placeholder="ex. Québec, Montréal…"></div>
+          </div>
+          <button class="btn btn-sm" type="submit">Ajouter</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="espace-macon">
+    <div class="sec-head">
+      <h2>👷 Espace Maçon</h2>
+      <p>Le soir, chaque maçon vérifie où il va demain et avec quel boss. <strong>Accès test</strong> pour essayer.</p>
+    </div>
+    <div id="auth-macon">
+      <div class="card">
+        <h3>Connexion Maçon</h3>
+        <form class="login-form" data-login-role="macon" novalidate>
+          <div class="field"><label for="lg-macon-user">Identifiant</label><input id="lg-macon-user" autocomplete="off" placeholder="ex. macon"></div>
+          <div class="field"><label for="lg-macon-pass">Mot de passe</label><input id="lg-macon-pass" type="password" autocomplete="off" placeholder="••••"></div>
+          <button class="btn" type="submit">Se connecter</button>
+          <p class="note" id="lg-macon-msg" aria-live="polite"></p>
+        </form>
+        <div style="margin-top:.8rem;">
+          <span class="badge">Test seulement</span>
+          <button type="button" class="btn btn-test btn-sm" data-test-login="macon">Accès test</button>
+          <p class="note">Compte fictif « test-macon » — pour essayer la démo.</p>
+        </div>
+      </div>
+    </div>
+    <div id="ws-macon" hidden>
+      <div class="card">
+        <h3>🌙 Demain : <span id="macon-tomorrow"></span></h3>
+        <div class="field" style="max-width:320px;"><label for="macon-who">Je suis…</label><select id="macon-who"></select></div>
+        <div class="big-day" id="macon-result"></div>
+      </div>
+      <div class="card">
+        <h3>🔔 Notifications <span class="note">(simulation — les vraies notifications sur téléphone viendraient au niveau 2)</span></h3>
+        <div id="macon-notifs"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="aide">
+    <div class="sec-head"><h2>❓ Aide</h2></div>
+    <div class="card">
+      <h3>Comment ça marche</h3>
+      <ol style="margin:.4rem 0; padding-left:1.2rem; color:var(--ink-soft);">
+        <li>Le <strong>boss</strong> se connecte (Accès test), ajoute son équipe et ses chantiers une seule fois.</li>
+        <li>Chaque soir, il prépare le <strong>dispatch de demain</strong> : qui va où, avec quel boss, à quelle heure.</li>
+        <li>Il clique <strong>Publier le dispatch de demain</strong>.</li>
+        <li>Chaque <strong>maçon</strong> se connecte le soir, choisit son nom et voit où il va demain.</li>
+      </ol>
+      <p class="note">Démo niveau 1 : tout est simulé et reste dans votre navigateur (aucun compte réel, aucun envoi). Les notifications sur téléphone et la synchronisation multi-appareils viendraient au niveau 2.</p>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap">Dispatch Maçonnerie — démo niveau 1, données fictives. Fait avec 🧱.</div></footer>
+<script>
+(function(){
+'use strict';
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function uid(p){ return (p || 'x') + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36); }
+function pad(n){ return (n < 10 ? '0' : '') + n; }
+function dayStr(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function todayStr(){ return dayStr(new Date()); }
+function tomorrowStr(){ var d = new Date(); d.setDate(d.getDate() + 1); return dayStr(d); }
+function fmtLong(ds){
+  var p = ds.split('-'); var d = new Date(+p[0], +p[1] - 1, +p[2]);
+  var jours = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  var mois = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  return jours[d.getDay()] + ' ' + d.getDate() + ' ' + mois[d.getMonth()];
+}
+var JOB_LABEL = { brique:'Brique', pierre:'Pierre', reno:'Rénovation', autre:'Autre', conge:'🎉 Congé' };
+var ROLE_LABEL = { boss:'Boss', chef:"Chef d'équipe", macon:'Employé', bureau:'Bureau' };
+
+var LS_KEY = 'mga-dispatch-v1';
+function defaultData(){
+  return {
+    team: [
+      { id:'t-b1', nom:'Sébastien Royer', role:'boss' },
+      { id:'t-b2', nom:'Sébastien', role:'boss' },
+      { id:'t-b3', nom:'Kevin', role:'boss' },
+      { id:'t-c1', nom:'Sam', role:'chef' },
+      { id:'t-m1', nom:'Dave', role:'macon' },
+      { id:'t-m2', nom:'Maxime', role:'macon' },
+      { id:'t-m3', nom:'Alex Roy', role:'macon' },
+      { id:'t-m4', nom:'Jimmy', role:'macon' },
+      { id:'t-o1', nom:'Jessica', role:'bureau' },
+      { id:'t-o2', nom:'Carl', role:'bureau' }
+    ],
+    sites: [
+      { id:'s1', nom:'Maison rue Principale', adr:'123 rue Principale', ville:'Québec' },
+      { id:'s2', nom:'Bloc boul. Saint-Jean', adr:'456 boul. Saint-Jean', ville:'Montréal' }
+    ],
+    assigns: {},
+    published: {},
+    notifs: []
+  };
+}
+var DB;
+try { DB = JSON.parse(localStorage.getItem(LS_KEY)) || defaultData(); }
+catch(e){ DB = defaultData(); }
+if(!DB.team || !DB.sites) DB = defaultData();
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }catch(e){} }
+function teamById(id){ for(var i = 0; i < DB.team.length; i++) if(DB.team[i].id === id) return DB.team[i]; return null; }
+function siteById(id){ for(var i = 0; i < DB.sites.length; i++) if(DB.sites[i].id === id) return DB.sites[i]; return null; }
+function assignsOf(ds){ return DB.assigns[ds] || []; }
+function villes(){
+  var v = {}, out = [];
+  DB.sites.forEach(function(s){ var c = (s.ville || '').trim(); if(c && !v[c]){ v[c] = 1; out.push(c); } });
+  return out.sort();
+}
+
+function pushNotif(text){
+  DB.notifs.unshift({ id: uid('n'), ts: Date.now(), text: text });
+  DB.notifs = DB.notifs.slice(0, 30);
+  save(); renderNotifs();
+}
+function fmtHeureNotif(ts){
+  var d = new Date(ts);
+  return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function renderNotifs(){
+  var box = $('macon-notifs'); if(!box) return;
+  if(!DB.notifs.length){ box.innerHTML = '<p class="note">Aucune notification pour le moment.</p>'; return; }
+  box.innerHTML = DB.notifs.map(function(n){
+    return '<p style="margin:.35rem 0; font-size:.92rem;">🔔 ' + esc(n.text) + ' <span class="note">— ' + fmtHeureNotif(n.ts) + '</span></p>';
+  }).join('');
+}
+
+var session = null;
+var TEST = { boss:{ user:'test-boss', pass:'test', role:'boss' }, macon:{ user:'test-macon', pass:'test', role:'macon' } };
+function loginAs(role){ session = { role: role, user: 'test-' + role }; applySession(); }
+function logout(){ session = null; applySession(); }
+function applySession(){
+  var r = session ? session.role : null;
+  $('auth-boss').hidden = r === 'boss';
+  $('ws-boss').hidden = r !== 'boss';
+  $('auth-macon').hidden = r === 'macon';
+  $('ws-macon').hidden = r !== 'macon';
+  $('role-switch').hidden = !session;
+  $('session-label').innerHTML = session
+    ? 'Connecté : <span class="who">' + esc(session.user) + '</span> (' + (r === 'boss' ? 'Boss' : 'Maçon') + ') — <span class="badge">simulation niveau 1</span>'
+    : 'Non connecté — <span class="badge">simulation niveau 1</span>';
+  if(r === 'boss') renderBossAll();
+  if(r === 'macon') renderMacon();
+  renderNotifs();
+}
+document.addEventListener('click', function(e){
+  var tl = e.target.closest('[data-test-login]');
+  if(tl){ loginAs(tl.getAttribute('data-test-login')); return; }
+  var lo = e.target.closest('[data-login-act="logout"]');
+  if(lo){ logout(); return; }
+  var g = e.target.closest('[data-goto]');
+  if(g){ var el = document.querySelector(g.getAttribute('data-goto')); if(el) el.scrollIntoView({ behavior:'smooth', block:'start' }); }
+});
+document.querySelectorAll('form[data-login-role]').forEach(function(f){
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    var role = f.getAttribute('data-login-role');
+    var u = $('lg-' + role + '-user').value.trim().toLowerCase();
+    var p = $('lg-' + role + '-pass').value;
+    var t = TEST[role];
+    var msg = $('lg-' + role + '-msg');
+    if(u === t.user && p === t.pass){ msg.textContent = ''; loginAs(role); }
+    else msg.textContent = 'Identifiants fictifs : test-' + role + ' / test (ou utilisez Accès test).';
+  });
+});
+
+function renderTeam(){
+  $('team-body').innerHTML = DB.team.map(function(m){
+    return '<tr><td><strong>' + esc(m.nom) + '</strong></td>' +
+      '<td><span class="chip' + (m.role === 'boss' ? ' chip-boss' : '') + '">' + esc(ROLE_LABEL[m.role] || m.role) + '</span></td>' +
+      '<td style="white-space:nowrap;">' +
+      '<button type="button" class="btn btn-secondary btn-sm" data-tm-edit="' + m.id + '">Modifier</button> ' +
+      '<button type="button" class="btn btn-danger btn-sm" data-tm-del="' + m.id + '">Retirer</button></td></tr>';
+  }).join('') || '<tr><td colspan="3" class="note">Aucun membre. Ajoutez votre équipe ci-dessous.</td></tr>';
+}
+$('team-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  var nom = $('tm-nom').value.trim(); if(!nom){ $('tm-nom').focus(); return; }
+  DB.team.push({ id: uid('t'), nom: nom, role: $('tm-role').value });
+  $('tm-nom').value = ''; save(); renderTeam(); renderAssignOptions(); renderDash();
+  pushNotif('👷 Nouveau membre dans l\u2019équipe : ' + nom + '.');
+});
+document.addEventListener('click', function(e){
+  var del = e.target.closest('[data-tm-del]');
+  if(del){
+    var m = teamById(del.getAttribute('data-tm-del'));
+    DB.team = DB.team.filter(function(x){ return x.id !== del.getAttribute('data-tm-del'); });
+    save(); renderTeam(); renderAssignOptions(); renderDash();
+    if(m) pushNotif('👷 ' + m.nom + ' a été retiré de l\u2019équipe.');
+    return;
+  }
+  var ed = e.target.closest('[data-tm-edit]');
+  if(ed){
+    var m2 = teamById(ed.getAttribute('data-tm-edit')); if(!m2) return;
+    var nn = prompt('Nom du membre :', m2.nom); if(nn === null) return;
+    var nr = prompt("Rôle (boss, chef, macon ou bureau) :", m2.role); if(nr === null) return;
+    nr = nr.trim().toLowerCase();
+    if(nr !== 'boss' && nr !== 'chef' && nr !== 'macon' && nr !== 'bureau'){ alert('Rôle invalide : boss, chef, macon ou bureau.'); return; }
+    m2.nom = nn.trim() || m2.nom; m2.role = nr;
+    save(); renderTeam(); renderAssignOptions(); renderDash();
+    pushNotif('👷 ' + m2.nom + ' est maintenant ' + ROLE_LABEL[nr] + '.');
+  }
+});
+
+function renderSites(){
+  $('sites-body').innerHTML = DB.sites.map(function(s){
+    return '<tr><td><strong>' + esc(s.nom) + '</strong></td><td>' + esc(s.adr || '—') + '</td><td>' + esc(s.ville || '—') + '</td>' +
+      '<td><button type="button" class="btn btn-danger btn-sm" data-st-del="' + s.id + '">Retirer</button></td></tr>';
+  }).join('') || '<tr><td colspan="4" class="note">Aucun chantier. Ajoutez vos chantiers ci-dessous.</td></tr>';
+  var vs = villes(), sel = $('disp-ville'), cur = sel.value;
+  sel.innerHTML = '<option value="">Toutes les villes</option>' + vs.map(function(v){ return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
+  if(vs.indexOf(cur) >= 0) sel.value = cur;
+}
+$('site-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  var nom = $('st-nom').value.trim(); if(!nom){ $('st-nom').focus(); return; }
+  DB.sites.push({ id: uid('s'), nom: nom, adr: $('st-adr').value.trim(), ville: $('st-ville').value.trim() });
+  $('st-nom').value = ''; $('st-adr').value = ''; $('st-ville').value = '';
+  save(); renderSites(); renderAssignOptions(); renderAssigns();
+});
+document.addEventListener('click', function(e){
+  var del = e.target.closest('[data-st-del]');
+  if(!del) return;
+  DB.sites = DB.sites.filter(function(x){ return x.id !== del.getAttribute('data-st-del'); });
+  save(); renderSites(); renderAssignOptions(); renderAssigns();
+});
+
+function workers(){ return DB.team.filter(function(m){ return m.role === 'macon'; }); }
+function responsibles(){ return DB.team.filter(function(m){ return m.role === 'boss' || m.role === 'chef'; }); }
+function renderAssignOptions(){
+  var ws = workers(), rs = responsibles();
+  $('as-worker').innerHTML = ws.map(function(m){ return '<option value="' + m.id + '">' + esc(m.nom) + '</option>'; }).join('');
+  $('as-boss').innerHTML = '<option value="">—</option>' + rs.map(function(m){ return '<option value="' + m.id + '">' + esc(m.nom) + ' (' + esc(ROLE_LABEL[m.role]) + ')</option>'; }).join('');
+  $('as-site').innerHTML = '<option value="">— (congé)</option>' + DB.sites.map(function(s){ return '<option value="' + s.id + '">' + esc(s.nom) + (s.ville ? ' — ' + esc(s.ville) : '') + '</option>'; }).join('');
+}
+function dispDate(){ return $('disp-date').value || todayStr(); }
+function villeFilt(){ return $('disp-ville').value || ''; }
+function renderAssigns(){
+  var ds = dispDate(), vf = villeFilt();
+  var list = assignsOf(ds).filter(function(a){
+    if(!vf) return true;
+    if(a.job === 'conge') return true;
+    var s = siteById(a.siteId);
+    return s && (s.ville || '') === vf;
+  });
+  $('assign-body').innerHTML = list.map(function(a){
+    var w = teamById(a.workerId), s = siteById(a.siteId), b = teamById(a.bossId);
+    var conge = a.job === 'conge';
+    return '<tr><td><strong>' + esc(w ? w.nom : '?') + '</strong></td>' +
+      '<td>' + (conge ? '—' : esc(s ? s.nom : '?')) + '</td>' +
+      '<td>' + (conge ? '—' : esc(s && s.ville ? s.ville : '—')) + '</td>' +
+      '<td>' + esc(JOB_LABEL[a.job] || a.job) + '</td>' +
+      '<td>' + (conge ? '—' : esc(b ? b.nom : '—')) + '</td>' +
+      '<td>' + (conge ? '—' : esc(a.heure)) + '</td>' +
+      '<td style="white-space:nowrap;">' +
+      '<button type="button" class="btn btn-secondary btn-sm" data-as-edit="' + a.id + '">Changer</button> ' +
+      '<button type="button" class="btn btn-danger btn-sm" data-as-del="' + a.id + '">Retirer</button></td></tr>';
+  }).join('') || '<tr><td colspan="7" class="note">Personne d\u2019affecté pour cette journée.</td></tr>';
+}
+$('assign-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  var ds = dispDate();
+  var wid = $('as-worker').value, job = $('as-job').value;
+  if(!wid){ $('assign-msg').textContent = 'Ajoutez d\u2019abord des employés.'; return; }
+  var sid = $('as-site').value, bid = $('as-boss').value;
+  if(job !== 'conge' && !sid){ $('assign-msg').textContent = 'Choisissez un chantier (ou Congé).'; return; }
+  (DB.assigns[ds] = DB.assigns[ds] || []).push({ id: uid('a'), workerId: wid, siteId: sid || null, bossId: bid || null, job: job, heure: $('as-heure').value || '06:30' });
+  $('assign-msg').textContent = '';
+  save(); renderAssigns(); renderDash();
+  if(DB.published[ds]){
+    var w = teamById(wid);
+    if(job === 'conge') pushNotif('🎉 ' + (w ? w.nom : '?') + ' est en congé le ' + fmtLong(ds) + '.');
+    else { var s = siteById(sid); pushNotif('🔄 Changement au dispatch du ' + fmtLong(ds) + ' : ' + (w ? w.nom : '?') + ' → ' + (s ? s.nom : '?') + ' (' + JOB_LABEL[job] + ').'); }
+  }
+});
+document.addEventListener('click', function(e){
+  var del = e.target.closest('[data-as-del]');
+  if(del){
+    var ds = dispDate(), id = del.getAttribute('data-as-del'), gone = null;
+    DB.assigns[ds] = assignsOf(ds).filter(function(a){ if(a.id === id){ gone = a; return false; } return true; });
+    save(); renderAssigns(); renderDash();
+    if(gone && DB.published[ds]){ var w = teamById(gone.workerId); pushNotif('🔄 Changement au dispatch du ' + fmtLong(ds) + ' : ' + (w ? w.nom : '?') + ' n\u2019est plus affecté.'); }
+    return;
+  }
+  var ed = e.target.closest('[data-as-edit]');
+  if(ed){
+    var ds2 = dispDate(), a = null;
+    assignsOf(ds2).forEach(function(x){ if(x.id === ed.getAttribute('data-as-edit')) a = x; });
+    if(!a) return;
+    var w2 = teamById(a.workerId), s2 = siteById(a.siteId);
+    var choix = prompt('Changer l\u2019affectation de ' + (w2 ? w2.nom : '?') + '.\nNouveau chantier (nom exact, ou vide pour congé) :', s2 ? s2.nom : '');
+    if(choix === null) return;
+    choix = choix.trim();
+    if(!choix){ a.job = 'conge'; a.siteId = null; a.bossId = null; }
+    else {
+      var ns = null;
+      DB.sites.forEach(function(s){ if(s.nom.toLowerCase() === choix.toLowerCase()) ns = s; });
+      if(!ns){ alert('Chantier introuvable. Vérifiez le nom exact.'); return; }
+      a.siteId = ns.id;
+      var job = prompt('Type de job (brique, pierre, reno, autre) :', a.job === 'conge' ? 'brique' : a.job);
+      if(job !== null && JOB_LABEL[job.trim().toLowerCase()]) a.job = job.trim().toLowerCase();
+    }
+    save(); renderAssigns(); renderDash();
+    if(DB.published[ds2]){
+      if(a.job === 'conge') pushNotif('🎉 ' + (w2 ? w2.nom : '?') + ' est en congé le ' + fmtLong(ds2) + '.');
+      else { var ns2 = siteById(a.siteId); pushNotif('🔄 Changement au dispatch du ' + fmtLong(ds2) + ' : ' + (w2 ? w2.nom : '?') + ' déplacé vers ' + (ns2 ? ns2.nom : '?') + ' (' + JOB_LABEL[a.job] + ').'); }
+    }
+  }
+});
+$('disp-date').addEventListener('change', renderAssigns);
+$('disp-ville').addEventListener('change', renderAssigns);
+$('qa-tomorrow').addEventListener('click', function(){ $('disp-date').value = tomorrowStr(); renderAssigns(); renderDash(); });
+$('qa-today').addEventListener('click', function(){ $('disp-date').value = todayStr(); renderAssigns(); renderDash(); });
+$('qa-add-member').addEventListener('click', function(){ $('tm-nom').focus(); $('tm-nom').scrollIntoView({ behavior:'smooth', block:'center' }); });
+$('qa-add-site').addEventListener('click', function(){ $('st-nom').focus(); $('st-nom').scrollIntoView({ behavior:'smooth', block:'center' }); });
+
+function renderDash(){
+  var tm = tomorrowStr();
+  $('boss-tomorrow').textContent = fmtLong(tm);
+  var pub = !!DB.published[tm];
+  $('boss-pub-chip').innerHTML = pub ? '<span class="chip chip-pub">Publié</span>' : '<span class="chip chip-soon">Pas encore publié</span>';
+  var list = assignsOf(tm);
+  var seen = {};
+  list.forEach(function(a){ seen[a.workerId] = true; });
+  var sansAffect = workers().filter(function(m){ return !seen[m.id]; }).length;
+  var enConge = list.filter(function(a){ return a.job === 'conge'; }).length;
+  var chantiersSansBoss = DB.sites.filter(function(s){
+    return !list.some(function(a){ return a.siteId === s.id; });
+  }).length;
+  function tile(n, label, go, warn){
+    var cls = n > 0 ? (warn ? ' tile-warn' : '') : ' tile-ok';
+    return '<div class="tile' + cls + '" data-goto="' + go + '"><div class="tile-n">' + n + '</div><div class="tile-l">' + label + '</div><div class="tile-go">Aller →</div></div>';
+  }
+  $('boss-dash').innerHTML =
+    tile(list.length - enConge, 'affectés demain', '#sec-dispatch', false) +
+    tile(enConge, 'en congé demain', '#sec-dispatch', false) +
+    tile(sansAffect, 'sans affectation', '#sec-dispatch', true) +
+    tile(chantiersSansBoss, 'chantiers sans équipe', '#sec-chantiers', true);
+  var pm = $('pub-msg');
+  if(pm) pm.textContent = pub ? 'Dispatch de demain publié. L\u2019équipe peut le consulter.' : '';
+}
+
+$('btn-publish').addEventListener('click', function(){
+  var tm = tomorrowStr();
+  DB.published[tm] = true;
+  var n = assignsOf(tm).filter(function(a){ return a.job !== 'conge'; }).length;
+  save(); renderDash();
+  pushNotif('📣 Dispatch de demain (' + fmtLong(tm) + ') publié : ' + n + ' affecté' + (n > 1 ? 's' : '') + '. Vérifiez où vous allez !');
+  $('pub-msg').textContent = 'Publié ! L\u2019équipe est notifiée (simulation).';
+});
+$('btn-unpublish').addEventListener('click', function(){
+  var tm = tomorrowStr();
+  delete DB.published[tm];
+  save(); renderDash(); renderMacon();
+  $('pub-msg').textContent = 'Publication retirée.';
+});
+
+function renderMacon(){
+  var tm = tomorrowStr();
+  $('macon-tomorrow').textContent = fmtLong(tm);
+  var ws = workers();
+  $('macon-who').innerHTML = ws.map(function(m){ return '<option value="' + m.id + '">' + esc(m.nom) + '</option>'; }).join('');
+  showMaconAssign();
+  renderNotifs();
+}
+function showMaconAssign(){
+  var tm = tomorrowStr(), box = $('macon-result');
+  if(!DB.published[tm]){
+    box.innerHTML = '<p class="note" style="font-size:1rem;">🌙 Le dispatch de demain n\u2019est pas encore publié.<br>Revenez voir ce soir ou demain matin !</p>';
+    return;
+  }
+  var wid = $('macon-who').value, a = null;
+  assignsOf(tm).forEach(function(x){ if(x.workerId === wid) a = x; });
+  if(!a){
+    box.innerHTML = '<p class="note" style="font-size:1rem;">Aucune affectation pour vous demain.<br>Vérifiez avec votre boss.</p>';
+    return;
+  }
+  var w = teamById(wid);
+  if(a.job === 'conge'){
+    box.innerHTML = '<p class="note">Salut ' + esc(w ? w.nom : '') + ', demain :</p>' +
+      '<div class="ou">🎉 CONGÉ !</div>' +
+      '<div class="avec">Profitez-en bien.</div>';
+    return;
+  }
+  var s = siteById(a.siteId), b = teamById(a.bossId);
+  var maps = s && s.adr ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((s.adr || '') + ' ' + (s.ville || '')) : null;
+  box.innerHTML =
+    '<p class="note">Salut ' + esc(w ? w.nom : '') + ', demain :</p>' +
+    '<div class="ou">🏗️ ' + esc(s ? s.nom : '?') + '</div>' +
+    ((s && (s.adr || s.ville)) ? '<p style="margin:.2rem 0;">' + esc([s.adr, s.ville].filter(Boolean).join(', ')) + (maps ? ' — <a href="' + maps + '" target="_blank" rel="noopener">Ouvrir dans Maps</a>' : '') + '</p>' : '') +
+    '<div class="avec">🧱 Job : <strong>' + esc(JOB_LABEL[a.job] || a.job) + '</strong></div>' +
+    '<div class="avec">👷 Avec : <strong>' + esc(b ? b.nom : '—') + '</strong>' + (b ? ' (' + esc(ROLE_LABEL[b.role]) + ')' : '') + '</div>' +
+    '<div class="heure">🕡 Départ : ' + esc(a.heure) + '</div>';
+}
+$('macon-who').addEventListener('change', showMaconAssign);
+
+function renderBossAll(){ renderTeam(); renderSites(); renderAssignOptions(); $('disp-date').value = tomorrowStr(); renderAssigns(); renderDash(); }
+renderNotifs();
+})();
+</script>
+</body>
+</html>
