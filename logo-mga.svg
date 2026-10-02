@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="MGA Maçonnerie Gervais et Associés inc.">
+  <rect width="640" height="360" rx="28" fill="#141414"/>
+  <!-- Arc ovale au-dessus -->
+  <path d="M60,140 A260,110 0 0 1 580,140" fill="none" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
+  <!-- MGA -->
+  <text x="272" y="232" text-anchor="middle" font-family="'Arial Black', Arial, Helvetica, sans-serif" font-weight="900" font-size="152" letter-spacing="8" fill="#ffffff">MGA</text>
+  <!-- Pioche de maçon -->
+  <g fill="#ffffff" transform="rotate(22 565 195)">
+    <rect x="556" y="150" width="18" height="125" rx="9"/>
+    <path d="M498,142 Q565,112 632,142 L624,160 Q565,132 506,160 Z"/>
+  </g>
+  <!-- MAÇONNERIE -->
+  <text x="320" y="292" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="46" letter-spacing="16" fill="#ffffff">MAÇONNERIE</text>
+  <!-- GERVAIS & ASSOCIÉS INC. -->
+  <text x="320" y="334" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="32" letter-spacing="5" fill="#ffffff">GERVAIS &amp; ASSOCIÉS INC.</text>
+</svg>
