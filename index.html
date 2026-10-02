@@ -7,7 +7,7 @@
 <meta name="description" content="Démo niveau 1 : chaque soir, l'équipe de maçonnerie sait où elle va et avec quel boss. Données fictives, tout fonctionne dans le navigateur.">
 <style>
 :root{
-  --brand:#1a56db; --brand-deep:#123a9e; --brand-soft:#e8effe;
+  --brand:#ea6a0a; --brand-deep:#b54e05; --brand-soft:#fdf0e3;
   --ink:#111318; --ink-soft:#3c414b; --muted:#6b7280;
   --bg:#ffffff; --surface:#f7f9fd; --line:#dbe3f0;
   --ok:#067a46; --warn:#a05d00; --danger:#b42318;
@@ -15,7 +15,7 @@
   --font:"Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark){
-  :root{ --ink:#eef1f6; --ink-soft:#c6cdd9; --muted:#9aa3b2; --bg:#0e1116; --surface:#161b24; --line:#2a3342; --brand-soft:#16233f; --ok:#4cc37e; --warn:#f2b93c; --danger:#f27d72; }
+  :root{ --ink:#eef1f6; --ink-soft:#c6cdd9; --muted:#9aa3b2; --bg:#0e1116; --surface:#161b24; --line:#2a3342; --brand-soft:#2a1a0d; --ok:#4cc37e; --warn:#f2b93c; --danger:#f27d72; }
 }
 *{ box-sizing:border-box; }
 html{ scroll-behavior:smooth; }
@@ -24,7 +24,7 @@ body{ margin:0; font-family:var(--font); background:var(--bg); color:var(--ink);
 header.topbar{ position:sticky; top:0; z-index:50; background:var(--bg); border-bottom:1px solid var(--line); }
 .topbar-in{ display:flex; align-items:center; gap:.8rem; padding:.6rem 1rem; max-width:1060px; margin:0 auto; flex-wrap:wrap; }
 .logo{ display:flex; align-items:center; gap:.5rem; font-weight:800; font-size:1.05rem; color:var(--brand-deep); text-decoration:none; }
-.logo .brick{ width:26px; height:26px; border-radius:6px; background:var(--brand); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:1rem; }
+.logo .brick{ height:34px; border-radius:6px; background:#000; }
 nav.sections{ display:flex; gap:.4rem; flex-wrap:wrap; margin-left:auto; }
 nav.sections button{ background:none; border:1px solid transparent; border-radius:8px; padding:.4rem .7rem; font:inherit; font-size:.88rem; color:var(--ink-soft); cursor:pointer; }
 nav.sections button:hover{ border-color:var(--line); background:var(--surface); }
@@ -88,7 +88,7 @@ footer{ border-top:1px solid var(--line); padding:1.4rem 0 2rem; color:var(--mut
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a class="logo" href="#top"><span class="brick">🧱</span><span id="brand-name">MGA Maçonnerie Gervais &amp; Associés inc.</span></a>
+    <a class="logo" href="#top"><img class="brick" src="logo-mga.jpg" alt="MGA Maçonnerie"><span id="brand-name">MGA Maçonnerie Gervais &amp; Associés inc.</span></a>
     <nav class="sections" aria-label="Sections">
       <button type="button" data-goto="#espace-boss">Espace Boss</button>
       <button type="button" data-goto="#espace-macon">Espace Maçon</button>
@@ -325,9 +325,9 @@ function villes(){
   return out.sort();
 }
 
-function pushNotif(text){
-  DB.notifs.unshift({ id: uid('n'), ts: Date.now(), text: text });
-  DB.notifs = DB.notifs.slice(0, 30);
+function pushNotif(text, workerId){
+  DB.notifs.unshift({ id: uid('n'), ts: Date.now(), text: text, workerId: workerId || null });
+  DB.notifs = DB.notifs.slice(0, 40);
   save(); renderNotifs();
 }
 function fmtHeureNotif(ts){
@@ -336,8 +336,10 @@ function fmtHeureNotif(ts){
 }
 function renderNotifs(){
   var box = $('macon-notifs'); if(!box) return;
-  if(!DB.notifs.length){ box.innerHTML = '<p class="note">Aucune notification pour le moment.</p>'; return; }
-  box.innerHTML = DB.notifs.map(function(n){
+  var wid = $('macon-who') ? $('macon-who').value : null;
+  var list = DB.notifs.filter(function(n){ return !n.workerId || n.workerId === wid; });
+  if(!list.length){ box.innerHTML = '<p class="note">Aucune notification pour le moment.</p>'; return; }
+  box.innerHTML = list.map(function(n){
     return '<p style="margin:.35rem 0; font-size:.92rem;">🔔 ' + esc(n.text) + ' <span class="note">— ' + fmtHeureNotif(n.ts) + '</span></p>';
   }).join('');
 }
@@ -485,9 +487,8 @@ $('assign-form').addEventListener('submit', function(e){
   $('assign-msg').textContent = '';
   save(); renderAssigns(); renderDash();
   if(DB.published[ds]){
-    var w = teamById(wid);
-    if(job === 'conge') pushNotif('🎉 ' + (w ? w.nom : '?') + ' est en congé le ' + fmtLong(ds) + '.');
-    else { var s = siteById(sid); pushNotif('🔄 Changement au dispatch du ' + fmtLong(ds) + ' : ' + (w ? w.nom : '?') + ' → ' + (s ? s.nom : '?') + ' (' + JOB_LABEL[job] + ').'); }
+    if(job === 'conge') pushNotif('🎉 Vous êtes en congé le ' + fmtLong(ds) + '.', wid);
+    else { var s = siteById(sid); pushNotif('🔄 Votre affectation pour le ' + fmtLong(ds) + ' : ' + (s ? s.nom : '?') + ' (' + JOB_LABEL[job] + ').', wid); }
   }
 });
 document.addEventListener('click', function(e){
@@ -496,7 +497,7 @@ document.addEventListener('click', function(e){
     var ds = dispDate(), id = del.getAttribute('data-as-del'), gone = null;
     DB.assigns[ds] = assignsOf(ds).filter(function(a){ if(a.id === id){ gone = a; return false; } return true; });
     save(); renderAssigns(); renderDash();
-    if(gone && DB.published[ds]){ var w = teamById(gone.workerId); pushNotif('🔄 Changement au dispatch du ' + fmtLong(ds) + ' : ' + (w ? w.nom : '?') + ' n\u2019est plus affecté.'); }
+    if(gone && DB.published[ds]) pushNotif('🔄 Votre affectation du ' + fmtLong(ds) + ' a été retirée. Vérifiez avec votre boss.', gone.workerId);
     return;
   }
   var ed = e.target.closest('[data-as-edit]');
@@ -519,8 +520,8 @@ document.addEventListener('click', function(e){
     }
     save(); renderAssigns(); renderDash();
     if(DB.published[ds2]){
-      if(a.job === 'conge') pushNotif('🎉 ' + (w2 ? w2.nom : '?') + ' est en congé le ' + fmtLong(ds2) + '.');
-      else { var ns2 = siteById(a.siteId); pushNotif('🔄 Changement au dispatch du ' + fmtLong(ds2) + ' : ' + (w2 ? w2.nom : '?') + ' déplacé vers ' + (ns2 ? ns2.nom : '?') + ' (' + JOB_LABEL[a.job] + ').'); }
+      if(a.job === 'conge') pushNotif('🎉 Vous êtes en congé le ' + fmtLong(ds2) + '.', a.workerId);
+      else { var ns2 = siteById(a.siteId); pushNotif('🔄 Votre affectation pour le ' + fmtLong(ds2) + ' a changé : ' + (ns2 ? ns2.nom : '?') + ' (' + JOB_LABEL[a.job] + ').', a.workerId); }
     }
   }
 });
@@ -560,9 +561,8 @@ function renderDash(){
 $('btn-publish').addEventListener('click', function(){
   var tm = tomorrowStr();
   DB.published[tm] = true;
-  var n = assignsOf(tm).filter(function(a){ return a.job !== 'conge'; }).length;
   save(); renderDash();
-  pushNotif('📣 Dispatch de demain (' + fmtLong(tm) + ') publié : ' + n + ' affecté' + (n > 1 ? 's' : '') + '. Vérifiez où vous allez !');
+  pushNotif('📣 Le dispatch de demain (' + fmtLong(tm) + ') est publié. Vérifiez où vous allez !');
   $('pub-msg').textContent = 'Publié ! L\u2019équipe est notifiée (simulation).';
 });
 $('btn-unpublish').addEventListener('click', function(){
@@ -609,7 +609,7 @@ function showMaconAssign(){
     '<div class="avec">👷 Avec : <strong>' + esc(b ? b.nom : '—') + '</strong>' + (b ? ' (' + esc(ROLE_LABEL[b.role]) + ')' : '') + '</div>' +
     '<div class="heure">🕡 Départ : ' + esc(a.heure) + '</div>';
 }
-$('macon-who').addEventListener('change', showMaconAssign);
+$('macon-who').addEventListener('change', function(){ showMaconAssign(); renderNotifs(); });
 
 function renderBossAll(){ renderTeam(); renderSites(); renderAssignOptions(); $('disp-date').value = tomorrowStr(); renderAssigns(); renderDash(); }
 renderNotifs();
